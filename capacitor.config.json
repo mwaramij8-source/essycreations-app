@@ -1,0 +1,34 @@
+{
+  "appId": "tz.co.essycreations.app",
+  "appName": "Essy Creations",
+  "webDir": "www",
+  "server": {
+    "url": "https://essycreations.co.tz",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "essycreations.co.tz",
+      "*.essycreations.co.tz"
+    ]
+  },
+  "backgroundColor": "#161616",
+  "android": {
+    "backgroundColor": "#161616"
+  },
+  "ios": {
+    "backgroundColor": "#161616",
+    "contentInset": "never"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#161616",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#161616",
+      "overlaysWebView": false
+    }
+  },
+  "appendUserAgent": "EssyCreationsApp"
+}
