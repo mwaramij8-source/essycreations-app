@@ -29,23 +29,34 @@ jobs:
 
       - name: Restore signing key
         env:
-          KEYSTORE_B64: ${{ secrets.ESSY_KEYSTORE_B64 }}
-          KEYSTORE_PW: ${{ secrets.ESSY_KEYSTORE_PASSWORD || secrets.ESSYCREATIONS }}
+          S1: ${{ secrets.ESSY_KEYSTORE_B64 }}
+          S2: ${{ secrets.ESSY_KEYSTORE_PASSWORD }}
+          S3: ${{ secrets.ESSYCREATIONS }}
+        shell: python
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            # tolerate extra spaces / line breaks / labels pasted together with the key
-            printf '%s' "$KEYSTORE_B64" | python3 -c "import sys,re,base64; t=re.sub(r'\\s+','',sys.stdin.read()); m=max(re.findall(r'[A-Za-z0-9+/]+=*',t),key=len); sys.stdout.buffer.write(base64.b64decode(m+'='*(-len(m)%4)))" > "$RUNNER_TEMP/essy-release.jks"
-            PW=$(printf '%s' "$KEYSTORE_PW" | tr -d '[:space:]')
-            if keytool -list -keystore "$RUNNER_TEMP/essy-release.jks" -storepass "$PW" -alias essy >/dev/null 2>&1; then
-              echo "Keystore OK"
-              echo "ESSY_KEYSTORE=$RUNNER_TEMP/essy-release.jks" >> "$GITHUB_ENV"
-              echo "ESSY_KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
-            else
-              echo "::error::Keystore or password is wrong"; exit 1
-            fi
-          else
-            echo "::warning::ESSY_KEYSTORE_B64 secret missing - building debug-signed APK"
-          fi
+          import os, re, base64, subprocess
+          tmp = os.environ["RUNNER_TEMP"]; ks = os.path.join(tmp, "essy-release.jks")
+          vals = [os.environ.get(k, "") for k in ("S1", "S2", "S3")]
+          keys, pws = [], []
+          for v in vals:
+              t = re.sub(r"\s+", "", v)
+              runs = re.findall(r"[A-Za-z0-9+/]+=*", t)
+              if runs and len(max(runs, key=len)) > 1000:
+                  m = max(runs, key=len); keys.append(base64.b64decode(m + "=" * (-len(m) % 4)))
+              # password candidates: every whitespace-separated token and the whole value
+              pws += [t] + re.findall(r"[A-Za-z0-9]{8,}", v)
+          ok = False
+          for k in keys:
+              open(ks, "wb").write(k)
+              for pw in dict.fromkeys(p for p in pws if p and len(p) < 200):
+                  if subprocess.run(["keytool", "-list", "-keystore", ks, "-storepass", pw, "-alias", "essy"], capture_output=True).returncode == 0:
+                      with open(os.environ["GITHUB_ENV"], "a") as f:
+                          f.write(f"ESSY_KEYSTORE={ks}\nESSY_KEYSTORE_PASSWORD={pw}\n")
+                      print("Keystore OK"); ok = True; break
+              if ok: break
+          if not ok:
+              print(f"::error::No valid keystore found (key candidates: {len(keys)}). Check the ESSY_KEYSTORE_B64 / ESSY_KEYSTORE_PASSWORD secrets.")
+              raise SystemExit(1)
 
       - name: Build APK
         working-directory: android
