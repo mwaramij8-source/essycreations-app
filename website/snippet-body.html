@@ -1,0 +1,9 @@
+<!-- Essy Creations: Download App button -->
+<a href="/download-app/" class="essy-download-app" id="essy-download-app"
+   style="position:fixed;left:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:9999;display:inline-flex;align-items:center;gap:8px;background:#D4AF37;color:#111;font:700 14px Lato,Arial,sans-serif;padding:12px 18px;border-radius:999px;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.45)">📲 Download App</a>
+<script>
+(function(){var ua=navigator.userAgent||'';
+ var standalone=window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+ if(/EssyCreationsApp/.test(ua)||standalone){var b=document.getElementById('essy-download-app');if(b)b.style.display='none';}
+ if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});})();
+</script>
