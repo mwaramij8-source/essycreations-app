@@ -41,7 +41,7 @@ jobs:
       - name: Build APK
         working-directory: android
         env:
-          ESSY_KEYSTORE_PASSWORD: ${{ secrets.ESSY_KEYSTORE_PASSWORD }}
+          ESSY_KEYSTORE_PASSWORD: ${{ secrets.ESSY_KEYSTORE_PASSWORD || secrets.ESSYCREATIONS }}
         run: |
           mkdir -p ../out
           if [ -n "$ESSY_KEYSTORE" ]; then
