@@ -30,18 +30,25 @@ jobs:
       - name: Restore signing key
         env:
           KEYSTORE_B64: ${{ secrets.ESSY_KEYSTORE_B64 }}
+          KEYSTORE_PW: ${{ secrets.ESSY_KEYSTORE_PASSWORD || secrets.ESSYCREATIONS }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/essy-release.jks"
-            echo "ESSY_KEYSTORE=$RUNNER_TEMP/essy-release.jks" >> "$GITHUB_ENV"
+            # tolerate extra spaces / line breaks / labels pasted together with the key
+            printf '%s' "$KEYSTORE_B64" | python3 -c "import sys,re,base64; t=re.sub(r'\\s+','',sys.stdin.read()); m=max(re.findall(r'[A-Za-z0-9+/]+=*',t),key=len); sys.stdout.buffer.write(base64.b64decode(m+'='*(-len(m)%4)))" > "$RUNNER_TEMP/essy-release.jks"
+            PW=$(printf '%s' "$KEYSTORE_PW" | tr -d '[:space:]')
+            if keytool -list -keystore "$RUNNER_TEMP/essy-release.jks" -storepass "$PW" -alias essy >/dev/null 2>&1; then
+              echo "Keystore OK"
+              echo "ESSY_KEYSTORE=$RUNNER_TEMP/essy-release.jks" >> "$GITHUB_ENV"
+              echo "ESSY_KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
+            else
+              echo "::error::Keystore or password is wrong"; exit 1
+            fi
           else
             echo "::warning::ESSY_KEYSTORE_B64 secret missing - building debug-signed APK"
           fi
 
       - name: Build APK
         working-directory: android
-        env:
-          ESSY_KEYSTORE_PASSWORD: ${{ secrets.ESSY_KEYSTORE_PASSWORD || secrets.ESSYCREATIONS }}
         run: |
           mkdir -p ../out
           if [ -n "$ESSY_KEYSTORE" ]; then
